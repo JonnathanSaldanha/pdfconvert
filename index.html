@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conversor PDF para Excel - Layout Preservado</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e5799 0%, #207cca 33%, #2989d8 66%, #7db9e8 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+        }
+
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+        }
+
+        .description {
+            text-align: center;
+            margin-bottom: 25px;
+            color: #34495e;
+            font-size: 1.1em;
+        }
+
+        .upload-area {
+            border: 3px dashed #3498db;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #ecf0f1;
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .upload-area:hover {
+            border-color: #2980b9;
+            background: #d6dbdf;
+        }
+
+        .upload-area input {
+            display: none;
+        }
+
+        .upload-text p {
+            font-size: 1.2em;
+            color: #3498db;
+            margin-bottom: 5px;
+        }
+
+        .subtext {
+            font-size: 0.9em !important;
+            color: #7f8c8d !important;
+        }
+
+        .progress-area {
+            margin-top: 20px;
+            display: none;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 25px;
+            background: #f0f0f0;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);
+        }
+
+        .progress {
+            height: 100%;
+            background: linear-gradient(90deg, #3498db, #2ecc71);
+            width: 0%;
+            transition: width 0.5s ease;
+            border-radius: 10px;
+        }
+
+        #progressText {
+            text-align: center;
+            margin-top: 10px;
+            color: #2c3e50;
+            font-weight: 500;
+        }
+
+        .results-area {
+            margin-top: 30px;
+            display: none;
+        }
+
+        .results-area h3 {
+            margin-bottom: 15px;
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+
+        .file-item {
+            background: #ecf0f1;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .download-btn {
+            background: linear-gradient(135deg, #3498db, #2ecc71);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: all 0.3s ease;
+            margin-top: 15px;
+            font-weight: 600;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px rgba(0,0,0,0.15);
+            background: linear-gradient(135deg, #2980b9, #27ae60);
+        }
+
+        .download-btn:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .settings {
+            margin-top: 30px;
+            padding: 20px;
+            background: #ecf0f1;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .settings h3 {
+            margin-bottom: 15px;
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+
+        .settings label {
+            display: block;
+            margin: 12px 0;
+            color: #2c3e50;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .settings input[type="checkbox"] {
+            margin-right: 12px;
+            transform: scale(1.2);
+        }
+
+        .instructions {
+            margin-top: 30px;
+            padding: 20px;
+            background: #fff8e1;
+            border-radius: 10px;
+            border-left: 4px solid #f39c12;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .instructions h3 {
+            margin-bottom: 15px;
+            color: #2c3e50;
+            border-bottom: 2px solid #f39c12;
+            padding-bottom: 10px;
+        }
+
+        .instructions ol {
+            margin-left: 20px;
+        }
+
+        .instructions li {
+            margin-bottom: 10px;
+            line-height: 1.5;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 30px;
+            color: #ecf0f1;
+            font-size: 0.9em;
+            text-shadow: 1px 1px 1px rgba(0,0,0,0.3);
+        }
+
+        .preview {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            display: none;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .preview h4 {
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+
+        .preview-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .preview-table th, .preview-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+            font-size: 0.9em;
+        }
+
+        .preview-table th {
+            background-color: #3498db;
+            color: white;
+        }
+
+        .preview-table tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            color: #e74c3c;
+            text-align: center;
+            margin-top: 10px;
+            display: none;
+        }
+
+        .success-message {
+            color: #27ae60;
+            text-align: center;
+            margin-top: 10px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Conversor PDF para Excel</h1>
+        <p class="description">Preserva o layout original do PDF, organizando em colunas e linhas corretamente</p>
+        
+        <div class="upload-area" id="dropArea">
+            <input type="file" id="pdfInput" accept=".pdf" multiple>
+            <div class="upload-text">
+                <p>Arraste PDFs aqui ou clique para selecionar</p>
+                <p class="subtext">Suporte a múltiplos arquivos - Layout preservado</p>
+            </div>
+        </div>
+        
+        <div class="error-message" id="errorMessage"></div>
+        <div class="success-message" id="successMessage"></div>
+        
+        <div class="progress-area" id="progressArea">
+            <div class="progress-bar">
+                <div class="progress" id="progressBar"></div>
+            </div>
+            <p id="progressText">Processando...</p>
+        </div>
+
+        <div class="preview" id="previewArea">
+            <h4>Pré-visualização dos Dados Extraídos</h4>
+            <div id="previewContent"></div>
+        </div>
+
+        <div class="results-area" id="resultsArea">
+            <h3>Arquivos Processados</h3>
+            <div id="fileList"></div>
+            <button id="downloadAll" class="download-btn" disabled>
+                <span id="downloadText">Baixar Todos como Excel</span>
+                <span id="downloadLoader" class="loading" style="display: none;"></span>
+            </button>
+        </div>
+
+        <div class="settings">
+            <h3>Configurações de Extração</h3>
+            <label>
+                <input type="checkbox" id="preserveLayout" checked>
+                Preservar layout e formatação original
+            </label>
+            <label>
+                <input type="checkbox" id="detectTables" checked>
+                Detectar automaticamente tabelas
+            </label>
+            <label>
+                <input type="checkbox" id="multipleSheets" checked>
+                Criar planilhas separadas para cada página
+            </label>
+            <label>
+                <input type="checkbox" id="generatePreview">
+                Gerar pré-visualização antes de baixar
+            </label>
+        </div>
+
+        <div class="instructions">
+            <h3>Como usar:</h3>
+            <ol>
+                <li>Selecione ou arraste um ou mais arquivos PDF para a área indicada</li>
+                <li>Aguarde o processamento (dependendo do tamanho do arquivo)</li>
+                <li>Visualize a prévia dos dados extraídos (opcional)</li>
+                <li>Configure as opções de extração conforme necessário</li>
+                <li>Baixe o arquivo Excel resultante com layout preservado</li>
+            </ol>
+        </div>
+
+        <footer>
+            <p>Conversor PDF para Excel - Mantém formatação e layout original com colunas e linhas organizadas</p>
+        </footer>
+    </div>
+
+    <script>
+        // Configurar o worker do PDF.js - FORMA CORRETA
+        pdfjsLib = window['pdfjsLib'];
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+
+        class PDFToExcelConverter {
+            constructor() {
+                this.processedFiles = [];
+                this.init();
+            }
+
+            init() {
+                this.setupEventListeners();
+            }
+
+            setupEventListeners() {
+                const dropArea = document.getElementById('dropArea');
+                const fileInput = document.getElementById('pdfInput');
+                const downloadBtn = document.getElementById('downloadAll');
+
+                dropArea.addEventListener('click', () => fileInput.click());
+                
+                fileInput.addEventListener('change', (e) => {
+                    this.handleFiles(e.target.files);
+                });
+
+                dropArea.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    dropArea.style.borderColor = '#2980b9';
+                    dropArea.style.background = '#d6dbdf';
+                });
+
+                dropArea.addEventListener('dragleave', () => {
+                    dropArea.style.borderColor = '#3498db';
+                    dropArea.style.background = '#ecf0f1';
+                });
+
+                dropArea.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    dropArea.style.borderColor = '#3498db';
+                    dropArea.style.background = '#ecf0f1';
+                    
+                    // Verificar se os arquivos são PDF
+                    const files = Array.from(e.dataTransfer.files);
+                    const invalidFiles = files.filter(file => file.type !== 'application/pdf');
+                    
+                    if (invalidFiles.length > 0) {
+                        this.showError('Por favor, selecione apenas arquivos PDF.');
+                        return;
+                    }
+                    
+                    this.handleFiles(e.dataTransfer.files);
+                });
+
+                downloadBtn.addEventListener('click', () => this.downloadAll());
+            }
+
+            async handleFiles(files) {
+                if (files.length === 0) return;
+                
+                this.hideError();
+                this.hideSuccess();
+                
+                document.getElementById('progressArea').style.display = 'block';
+                this.processedFiles = [];
+                
+                // Desabilitar botão de download durante o processamento
+                document.getElementById('downloadAll').disabled = true;
+
+                for (let i = 0; i < files.length; i++) {
+                    const file = files[i];
+                    await this.processPDF(file, i, files.length);
+                }
+
+                this.showResults();
+            }
+
+            async processPDF(file, index, total) {
+                return new Promise(async (resolve) => {
+                    try {
+                        this.updateProgress(`Processando ${file.name}... (${index + 1}/${total})`, (index / total) * 100);
+
+                        const arrayBuffer = await file.arrayBuffer();
+                        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                        
+                        let allPageData = [];
+
+                        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+                            const page = await pdf.getPage(pageNum);
+                            const textContent = await page.getTextContent();
+                            
+                            // Extrair texto com formatação e layout
+                            const pageData = this.extractStructuredData(textContent);
+                            allPageData.push(pageData);
+                        }
+
+                        const excelData = this.convertToExcel(allPageData);
+                        
+                        this.processedFiles.push({
+                            name: file.name.replace('.pdf', ''),
+                            data: excelData,
+                            originalFile: file,
+                            structuredData: allPageData
+                        });
+
+                        this.updateProgress(`Completo: ${file.name} (${index + 1}/${total})`, ((index + 1) / total) * 100);
+                        
+                        // Mostrar prévia se ativado
+                        if (document.getElementById('generatePreview').checked) {
+                            this.showPreview(allPageData);
+                        }
+                        
+                        resolve();
+
+                    } catch (error) {
+                        console.error('Erro ao processar PDF:', error);
+                        this.updateProgress(`Erro em ${file.name}`, ((index + 1) / total) * 100);
+                        this.showError(`Erro ao processar ${file.name}. Verifique se é um PDF válido.`);
+                        resolve();
+                    }
+                });
+            }
+
+            extractStructuredData(textContent) {
+                const items = textContent.items;
+                
+                // Primeiro, vamos detectar as posições X das colunas
+                const xPositions = new Set();
+                for (const item of items) {
+                    xPositions.add(Math.round(item.transform[4]));
+                }
+                
+                // Ordenar as posições X para determinar as colunas
+                const sortedX = Array.from(xPositions).sort((a, b) => a - b);
+                
+                // Agrupar por linhas (baseado na coordenada Y)
+                const lines = {};
+                const lineTolerance = 3; // Tolerância para considerar que está na mesma linha
+                
+                for (const item of items) {
+                    const y = Math.round(item.transform[5] * 10) / 10;
+                    const roundedY = Math.round(y / lineTolerance) * lineTolerance;
+                    
+                    if (!lines[roundedY]) lines[roundedY] = [];
+                    
+                    lines[roundedY].push({
+                        text: item.str,
+                        x: item.transform[4],
+                        width: item.width,
+                        height: item.height
+                    });
+                }
+                
+                // Ordenar linhas por Y (de cima para baixo)
+                const sortedY = Object.keys(lines)
+                    .map(y => parseFloat(y))
+                    .sort((a, b) => b - a); // PDF Y coord é invertido (maior Y = mais acima)
+                
+                // Processar cada linha para criar estrutura de dados
+                const pageData = [];
+                
+                for (const y of sortedY) {
+                    const line = lines[y];
+                    
+                    // Ordenar itens na linha por X (esquerda para direita)
+                    line.sort((a, b) => a.x - b.x);
+                    
+                    // Criar array para esta linha com células vazias
+                    const row = new Array(sortedX.length).fill('');
+                    
+                    // Preencher as células com base nas posições X
+                    for (const item of line) {
+                        // Encontrar a coluna mais próxima para este item
+                        let closestCol = 0;
+                        let minDistance = Infinity;
+                        
+                        for (let i = 0; i < sortedX.length; i++) {
+                            const distance = Math.abs(item.x - sortedX[i]);
+                            if (distance < minDistance) {
+                                minDistance = distance;
+                                closestCol = i;
+                            }
+                        }
+                        
+                        // Se a célula já tem conteúdo, adicionar espaço antes do novo conteúdo
+                        if (row[closestCol] !== '') {
+                            row[closestCol] += ' ' + item.text;
+                        } else {
+                            row[closestCol] = item.text;
+                        }
+                    }
+                    
+                    // Adicionar a linha apenas se não estiver vazia
+                    if (row.some(cell => cell.trim() !== '')) {
+                        pageData.push(row);
+                    }
+                }
+                
+                return pageData;
+            }
+
+            convertToExcel(pageData) {
+                const workbook = XLSX.utils.book_new();
+                const multipleSheets = document.getElementById('multipleSheets').checked;
+
+                if (multipleSheets && pageData.length > 1) {
+                    pageData.forEach((page, pageIndex) => {
+                        const worksheet = XLSX.utils.aoa_to_sheet(page);
+                        XLSX.utils.book_append_sheet(
+                            workbook, 
+                            worksheet, 
+                            `Página ${pageIndex + 1}`
+                        );
+                    });
+                } else {
+                    // Combinar todas as páginas em uma única planilha
+                    let allData = [];
+                    pageData.forEach((page, index) => {
+                        // Adicionar cabeçalho da página
+                        if (pageData.length > 1) {
+                            allData.push([`Página ${index + 1}`]);
+                            allData.push([]);
+                        }
+                        
+                        // Adicionar dados da página
+                        page.forEach(row => allData.push(row));
+                        
+                        // Adicionar linha em branco entre páginas
+                        if (index < pageData.length - 1) {
+                            allData.push([]);
+                            allData.push([]);
+                        }
+                    });
+
+                    const worksheet = XLSX.utils.aoa_to_sheet(allData);
+                    XLSX.utils.book_append_sheet(workbook, worksheet, 'Dados Extraídos');
+                }
+
+                return workbook;
+            }
+            
+            showPreview(pageData) {
+                const previewArea = document.getElementById('previewArea');
+                const previewContent = document.getElementById('previewContent');
+                
+                previewContent.innerHTML = '';
+                
+                if (pageData.length === 0) return;
+                
+                // Mostrar apenas a primeira página para preview
+                const firstPage = pageData[0];
+                
+                if (firstPage.length > 0) {
+                    let tableHTML = '<table class="preview-table"><thead><tr>';
+                    
+                    // Adicionar cabeçalhos das colunas
+                    const colCount = firstPage[0].length;
+                    for (let i = 0; i < colCount; i++) {
+                        tableHTML += `<th>Col ${i+1}</th>`;
+                    }
+                    tableHTML += '</tr></thead><tbody>';
+                    
+                    // Adicionar dados (limitar a 10 linhas para preview)
+                    const rowLimit = Math.min(10, firstPage.length);
+                    for (let i = 0; i < rowLimit; i++) {
+                        tableHTML += '<tr>';
+                        for (let j = 0; j < colCount; j++) {
+                            tableHTML += `<td>${firstPage[i][j] || ''}</td>`;
+                        }
+                        tableHTML += '</tr>';
+                    }
+                    
+                    tableHTML += '</tbody></table>';
+                    
+                    if (firstPage.length > 10) {
+                        tableHTML += `<p class="subtext">Mostrando 10 de ${firstPage.length} linhas...</p>`;
+                    }
+                    
+                    previewContent.innerHTML = tableHTML;
+                    previewArea.style.display = 'block';
+                }
+            }
+
+            updateProgress(text, percent) {
+                document.getElementById('progressText').textContent = text;
+                document.getElementById('progressBar').style.width = percent + '%';
+            }
+
+            showResults() {
+                const resultsArea = document.getElementById('resultsArea');
+                const fileList = document.getElementById('fileList');
+                
+                fileList.innerHTML = '';
+                
+                if (this.processedFiles.length === 0) {
+                    this.showError('Nenhum arquivo foi processado com sucesso.');
+                    document.getElementById('progressArea').style.display = 'none';
+                    return;
+                }
+                
+                this.showSuccess(`${this.processedFiles.length} arquivo(s) processado(s) com sucesso!`);
+
+                this.processedFiles.forEach((file, index) => {
+                    const fileItem = document.createElement('div');
+                    fileItem.className = 'file-item';
+                    fileItem.innerHTML = `
+                        <span>${file.name} (${file.structuredData.length} página${file.structuredData.length !== 1 ? 's' : ''})</span>
+                        <button class="download-btn" onclick="converter.downloadSingle(${index})">
+                            Baixar Excel
+                        </button>
+                    `;
+                    fileList.appendChild(fileItem);
+                });
+
+                resultsArea.style.display = 'block';
+                document.getElementById('progressArea').style.display = 'none';
+                
+                // Habilitar botão de download
+                document.getElementById('downloadAll').disabled = false;
+            }
+
+            downloadSingle(index) {
+                const file = this.processedFiles[index];
+                XLSX.writeFile(file.data, `${file.name}.xlsx`);
+            }
+
+            async downloadAll() {
+                if (this.processedFiles.length === 0) return;
+
+                // Mostrar indicador de carregamento
+                document.getElementById('downloadText').textContent = 'Preparando download...';
+                document.getElementById('downloadLoader').style.display = 'inline-block';
+                document.getElementById('downloadAll').disabled = true;
+
+                // Pequeno atraso para permitir que a UI atualize
+                await new Promise(resolve => setTimeout(resolve, 100));
+
+                if (this.processedFiles.length === 1) {
+                    this.downloadSingle(0);
+                } else {
+                    const workbook = XLSX.utils.book_new();
+                    
+                    this.processedFiles.forEach(file => {
+                        // Para múltiplos arquivos, criar uma planilha per arquivo
+                        const firstSheet = file.data.SheetNames[0];
+                        const worksheet = file.data.Sheets[firstSheet];
+                        XLSX.utils.book_append_sheet(workbook, worksheet, file.name.substring(0, 30));
+                    });
+
+                    XLSX.writeFile(workbook, 'Todos_Arquivos_Processados.xlsx');
+                }
+
+                // Restaurar botão de download
+                document.getElementById('downloadText').textContent = 'Baixar Todos como Excel';
+                document.getElementById('downloadLoader').style.display = 'none';
+                document.getElementById('downloadAll').disabled = false;
+            }
+            
+            showError(message) {
+                const errorElement = document.getElementById('errorMessage');
+                errorElement.textContent = message;
+                errorElement.style.display = 'block';
+                
+                // Ocultar após 5 segundos
+                setTimeout(() => {
+                    this.hideError();
+                }, 5000);
+            }
+            
+            hideError() {
+                document.getElementById('errorMessage').style.display = 'none';
+            }
+            
+            showSuccess(message) {
+                const successElement = document.getElementById('successMessage');
+                successElement.textContent = message;
+                successElement.style.display = 'block';
+                
+                // Ocultar após 3 segundos
+                setTimeout(() => {
+                    this.hideSuccess();
+                }, 3000);
+            }
+            
+            hideSuccess() {
+                document.getElementById('successMessage').style.display = 'none';
+            }
+        }
+
+        // Inicializar o conversor quando a página carregar
+        let converter;
+        document.addEventListener('DOMContentLoaded', () => {
+            converter = new PDFToExcelConverter();
+        });
+    </script>
+</body>
+</html>
