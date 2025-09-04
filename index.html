@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Conversor PDF para Excel - Com Opções de Orientação</title>
+    <title>Conversor PDF para Excel - Padrão Vertical</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
@@ -362,7 +362,7 @@
 <body>
     <div class="container">
         <h1>Conversor PDF para Excel</h1>
-        <p class="description">Preserva o layout original do PDF, com opções de orientação de leitura</p>
+        <p class="description">Preserva o layout original do PDF, com orientação vertical como padrão</p>
         
         <div class="upload-area" id="dropArea">
             <input type="file" id="pdfInput" accept=".pdf" multiple>
@@ -423,12 +423,12 @@
             <p>Selecione como deseja que os dados sejam organizados:</p>
             
             <div class="orientation-options">
-                <div class="orientation-option selected" data-orientation="horizontal">
-                    <h4>Horizontal (Padrão)</h4>
+                <div class="orientation-option" data-orientation="horizontal">
+                    <h4>Horizontal</h4>
                     <p>Texto é organizado da esquerda para a direita, de cima para baixo</p>
                 </div>
-                <div class="orientation-option" data-orientation="vertical">
-                    <h4>Vertical</h4>
+                <div class="orientation-option selected" data-orientation="vertical">
+                    <h4>Vertical (Padrão)</h4>
                     <p>Texto é organizado de cima para baixo, da esquerda para a direita</p>
                 </div>
                 <div class="orientation-option" data-orientation="automatic">
@@ -442,7 +442,7 @@
             <h3>Como usar:</h3>
             <ol>
                 <li>Selecione ou arraste um ou mais arquivos PDF para a área indicada</li>
-                <li>Selecione a orientação de leitura desejada</li>
+                <li>Selecione a orientação de leitura desejada (padrão: vertical)</li>
                 <li>Aguarde o processamento (dependendo do tamanho do arquivo)</li>
                 <li>Visualize a prévia dos dados extraídos (opcional)</li>
                 <li>Configure as opções de extração conforme necessário</li>
@@ -451,7 +451,7 @@
         </div>
 
         <footer>
-            <p>Conversor PDF para Excel - Mantém formatação e layout original com opções de orientação</p>
+            <p>Conversor PDF para Excel - Mantém formatação e layout original com orientação vertical como padrão</p>
         </footer>
     </div>
 
@@ -463,7 +463,7 @@
         class PDFToExcelConverter {
             constructor() {
                 this.processedFiles = [];
-                this.orientation = 'horizontal'; // Padrão: horizontal
+                this.orientation = 'vertical'; // Padrão: VERTICAL
                 this.init();
             }
 
@@ -685,20 +685,25 @@
                     // Adicionar a linha apenas se não estiver vazia
                     if (row.some(cell => cell.trim() !== '')) {
                         // Aplicar orientação selecionada
-                        if (this.orientation === 'vertical') {
-                            // Transpor a linha (transformar colunas em linhas)
+                        if (this.orientation === 'horizontal') {
+                            // Orientação horizontal
+                            pageData.push(row);
+                        } else if (this.orientation === 'automatic') {
+                            // Detecção automática - usar padrão vertical para esta demonstração
                             for (let i = 0; i < row.length; i++) {
                                 if (pageData.length <= i) {
                                     pageData.push(new Array(sortedY.length).fill(''));
                                 }
                                 pageData[i][sortedY.indexOf(y)] = row[i];
                             }
-                        } else if (this.orientation === 'automatic') {
-                            // Detecção automática - usar padrão horizontal para esta demonstração
-                            pageData.push(row);
                         } else {
-                            // Orientação horizontal (padrão)
-                            pageData.push(row);
+                            // Orientação vertical (PADRÃO)
+                            for (let i = 0; i < row.length; i++) {
+                                if (pageData.length <= i) {
+                                    pageData.push(new Array(sortedY.length).fill(''));
+                                }
+                                pageData[i][sortedY.indexOf(y)] = row[i];
+                            }
                         }
                     }
                 }
@@ -732,7 +737,7 @@
                         // Adicionar dados da página
                         page.forEach(row => allData.push(row));
                         
-                        // Adicionar linha em blanco entre páginas
+                        // Adicionar linha em branco entre páginas
                         if (index < pageData.length - 1) {
                             allData.push([]);
                             allData.push([]);
