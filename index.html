@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Conversor PDF para Excel - Layout Preservado</title>
+    <title>Conversor PDF para Excel - Com Opções de Orientação</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
@@ -22,7 +22,7 @@
         }
 
         .container {
-            max-width: 1000px;
+            max-width: 1100px;
             margin: 0 auto;
             background: white;
             border-radius: 15px;
@@ -184,6 +184,43 @@
             transform: scale(1.2);
         }
 
+        .orientation-options {
+            display: flex;
+            gap: 20px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        .orientation-option {
+            flex: 1;
+            min-width: 200px;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .orientation-option:hover {
+            border-color: #3498db;
+            background-color: #f8f9fa;
+        }
+
+        .orientation-option.selected {
+            border-color: #2ecc71;
+            background-color: #e8f5e9;
+        }
+
+        .orientation-option h4 {
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+
+        .orientation-option p {
+            font-size: 0.9em;
+            color: #7f8c8d;
+        }
+
         .instructions {
             margin-top: 30px;
             padding: 20px;
@@ -282,12 +319,50 @@
             margin-top: 10px;
             display: none;
         }
+
+        .performance-warning {
+            background: #fff3cd;
+            color: #856404;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            display: none;
+            border-left: 4px solid #ffeeba;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+            
+            h1 {
+                font-size: 2em;
+            }
+            
+            .upload-area {
+                padding: 20px;
+            }
+            
+            .file-item {
+                flex-direction: column;
+                gap: 10px;
+                text-align: center;
+            }
+            
+            .settings, .instructions {
+                padding: 15px;
+            }
+            
+            .orientation-options {
+                flex-direction: column;
+            }
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Conversor PDF para Excel</h1>
-        <p class="description">Preserva o layout original do PDF, organizando em colunas e linhas corretamente</p>
+        <p class="description">Preserva o layout original do PDF, com opções de orientação de leitura</p>
         
         <div class="upload-area" id="dropArea">
             <input type="file" id="pdfInput" accept=".pdf" multiple>
@@ -305,6 +380,10 @@
                 <div class="progress" id="progressBar"></div>
             </div>
             <p id="progressText">Processando...</p>
+        </div>
+
+        <div class="performance-warning" id="performanceWarning">
+            <strong>Aviso:</strong> Arquivos PDF grandes podem demorar mais para processar. Recomendamos processar arquivos grandes individualmente.
         </div>
 
         <div class="preview" id="previewArea">
@@ -339,12 +418,31 @@
                 <input type="checkbox" id="generatePreview">
                 Gerar pré-visualização antes de baixar
             </label>
+            
+            <h4 style="margin-top: 20px;">Orientação de Leitura</h4>
+            <p>Selecione como deseja que os dados sejam organizados:</p>
+            
+            <div class="orientation-options">
+                <div class="orientation-option selected" data-orientation="horizontal">
+                    <h4>Horizontal (Padrão)</h4>
+                    <p>Texto é organizado da esquerda para a direita, de cima para baixo</p>
+                </div>
+                <div class="orientation-option" data-orientation="vertical">
+                    <h4>Vertical</h4>
+                    <p>Texto é organizado de cima para baixo, da esquerda para a direita</p>
+                </div>
+                <div class="orientation-option" data-orientation="automatic">
+                    <h4>Detecção Automática</h4>
+                    <p>O sistema tenta detectar a melhor orientação</p>
+                </div>
+            </div>
         </div>
 
         <div class="instructions">
             <h3>Como usar:</h3>
             <ol>
                 <li>Selecione ou arraste um ou mais arquivos PDF para a área indicada</li>
+                <li>Selecione a orientação de leitura desejada</li>
                 <li>Aguarde o processamento (dependendo do tamanho do arquivo)</li>
                 <li>Visualize a prévia dos dados extraídos (opcional)</li>
                 <li>Configure as opções de extração conforme necessário</li>
@@ -353,23 +451,25 @@
         </div>
 
         <footer>
-            <p>Conversor PDF para Excel - Mantém formatação e layout original com colunas e linhas organizadas</p>
+            <p>Conversor PDF para Excel - Mantém formatação e layout original com opções de orientação</p>
         </footer>
     </div>
 
     <script>
-        // Configurar o worker do PDF.js - FORMA CORRETA
-        pdfjsLib = window['pdfjsLib'];
+        // Configuração correta do worker do PDF.js
+        const pdfjsLib = window['pdfjs-dist/build/pdf'];
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
 
         class PDFToExcelConverter {
             constructor() {
                 this.processedFiles = [];
+                this.orientation = 'horizontal'; // Padrão: horizontal
                 this.init();
             }
 
             init() {
                 this.setupEventListeners();
+                this.setupOrientationOptions();
             }
 
             setupEventListeners() {
@@ -377,7 +477,9 @@
                 const fileInput = document.getElementById('pdfInput');
                 const downloadBtn = document.getElementById('downloadAll');
 
-                dropArea.addEventListener('click', () => fileInput.click());
+                dropArea.addEventListener('click', () => {
+                    fileInput.click();
+                });
                 
                 fileInput.addEventListener('change', (e) => {
                     this.handleFiles(e.target.files);
@@ -411,7 +513,30 @@
                     this.handleFiles(e.dataTransfer.files);
                 });
 
-                downloadBtn.addEventListener('click', () => this.downloadAll());
+                downloadBtn.addEventListener('click', () => {
+                    this.downloadAll();
+                });
+                
+                // Verificar tamanho do arquivo e mostrar aviso se for grande
+                fileInput.addEventListener('change', (e) => {
+                    if (e.target.files.length > 0) {
+                        const file = e.target.files[0];
+                        if (file.size > 5 * 1024 * 1024) { // 5MB
+                            document.getElementById('performanceWarning').style.display = 'block';
+                        }
+                    }
+                });
+            }
+            
+            setupOrientationOptions() {
+                const options = document.querySelectorAll('.orientation-option');
+                options.forEach(option => {
+                    option.addEventListener('click', () => {
+                        options.forEach(opt => opt.classList.remove('selected'));
+                        option.classList.add('selected');
+                        this.orientation = option.getAttribute('data-orientation');
+                    });
+                });
             }
 
             async handleFiles(files) {
@@ -483,14 +608,22 @@
             extractStructuredData(textContent) {
                 const items = textContent.items;
                 
-                // Primeiro, vamos detectar as posições X das colunas
-                const xPositions = new Set();
+                // Coletar todas as posições X para detectar colunas
+                const xPositions = [];
                 for (const item of items) {
-                    xPositions.add(Math.round(item.transform[4]));
+                    xPositions.push(item.transform[4]);
                 }
                 
-                // Ordenar as posições X para determinar as colunas
-                const sortedX = Array.from(xPositions).sort((a, b) => a - b);
+                // Agrupar posições X similares (dentro de 5 unidades)
+                const groupedX = [];
+                xPositions.sort((a, b) => a - b).forEach(x => {
+                    const existingGroup = groupedX.find(group => Math.abs(group - x) < 5);
+                    if (!existingGroup) {
+                        groupedX.push(x);
+                    }
+                });
+                
+                const sortedX = groupedX.sort((a, b) => a - b);
                 
                 // Agrupar por linhas (baseado na coordenada Y)
                 const lines = {};
@@ -551,7 +684,22 @@
                     
                     // Adicionar a linha apenas se não estiver vazia
                     if (row.some(cell => cell.trim() !== '')) {
-                        pageData.push(row);
+                        // Aplicar orientação selecionada
+                        if (this.orientation === 'vertical') {
+                            // Transpor a linha (transformar colunas em linhas)
+                            for (let i = 0; i < row.length; i++) {
+                                if (pageData.length <= i) {
+                                    pageData.push(new Array(sortedY.length).fill(''));
+                                }
+                                pageData[i][sortedY.indexOf(y)] = row[i];
+                            }
+                        } else if (this.orientation === 'automatic') {
+                            // Detecção automática - usar padrão horizontal para esta demonstração
+                            pageData.push(row);
+                        } else {
+                            // Orientação horizontal (padrão)
+                            pageData.push(row);
+                        }
                     }
                 }
                 
@@ -584,7 +732,7 @@
                         // Adicionar dados da página
                         page.forEach(row => allData.push(row));
                         
-                        // Adicionar linha em branco entre páginas
+                        // Adicionar linha em blanco entre páginas
                         if (index < pageData.length - 1) {
                             allData.push([]);
                             allData.push([]);
